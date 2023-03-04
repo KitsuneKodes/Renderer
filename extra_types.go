@@ -2,13 +2,18 @@ package imgui
 
 // #include "cimgui_wrapper.h"
 // #include "cimplot_wrapper.h"
+// #include "extra_types.h"
 import "C"
-import "image/color"
+
+import (
+	"image/color"
+	"time"
+)
 
 type (
 	Wchar               C.uint
 	ID                  C.ImGuiID
-	TextureID           uintptr
+	TextureID           C.ImTextureID
 	DrawIdx             C.ImDrawIdx
 	TableColumnIdx      C.ImGuiTableColumnIdx
 	TableDrawChannelIdx C.ImGuiTableDrawChannelIdx
@@ -174,6 +179,32 @@ func (i *PlotPoint) fromC(p C.ImPlotPoint) *PlotPoint {
 
 func (p PlotPoint) toC() C.ImPlotPoint {
 	return C.ImPlotPoint{x: C.double(p.X), y: C.double(p.Y)}
+}
+
+type PlotTime struct {
+	S  int // second part
+	Us int // microsecond part
+}
+
+func NewPlotTime(t time.Time) PlotTime {
+	ts := t.UnixMicro()
+	return PlotTime{
+		S:  int(ts / 1e6),
+		Us: int(ts % 1e6),
+	}
+}
+
+func (i PlotTime) Time() time.Time {
+	return time.Unix(int64(i.S), int64(i.Us)*int64(time.Microsecond))
+}
+
+func (i *PlotTime) fromC(p C.ImPlotTime) *PlotTime {
+	*i = PlotTime{int(p.S), int(p.Us)}
+	return i
+}
+
+func (p PlotTime) toC() C.ImPlotTime {
+	return C.ImPlotTime{S: C.xlong(p.S), Us: C.int(p.Us)}
 }
 
 // wrappableType represents a GO type that can be converted into a C value

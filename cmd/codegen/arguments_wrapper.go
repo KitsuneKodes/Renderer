@@ -30,7 +30,7 @@ func argWrapper(argType string) (wrapper argumentWrapper, err error) {
 		"const char* const[]":      charPtrPtrW,
 		"unsigned char":            simpleW("uint", "C.uchar"),
 		"unsigned char**":          uCharPtrW,
-		"size_t":                   simpleW("uint64", "C.xlong"),
+		"size_t":                   simpleW("uint64", "C.xulong"),
 		"size_t*":                  sizeTPtrW,
 		"float":                    floatW,
 		"float*":                   floatPtrW,
@@ -58,6 +58,7 @@ func argWrapper(argType string) (wrapper argumentWrapper, err error) {
 		"unsigned int*":            simplePtrW("uint32", "C.uint"),
 		"double":                   simpleW("float64", "C.double"),
 		"double*":                  simplePtrW("float64", "C.double"),
+		"const double*":            simplePtrSliceW("C.double", "float64"),
 		"bool":                     simpleW("bool", "C.bool"),
 		"bool*":                    boolPtrW,
 		"int[2]":                   simplePtrArrayW(2, "C.int", "int32"),
@@ -90,6 +91,8 @@ func argWrapper(argType string) (wrapper argumentWrapper, err error) {
 		"ImPlotPoint":              wrappableW("PlotPoint"),
 		"const ImPlotPoint":        wrappableW("PlotPoint"),
 		"ImPlotPoint*":             wrappablePtrW("*PlotPoint", "C.ImPlotPoint"),
+		"const ImPlotTime":         wrappableW("PlotTime"),
+		"ImPlotTime*":              wrappablePtrW("*PlotTime", "C.ImPlotTime"),
 	}
 
 	if wrapper, ok := argWrapperMap[argType]; ok {
@@ -127,7 +130,7 @@ func uCharPtrW(arg ArgDef) ArgumentWrapperData {
 func sizeTPtrW(arg ArgDef) ArgumentWrapperData {
 	return ArgumentWrapperData{
 		ArgType: "*uint64",
-		VarName: fmt.Sprintf("(*C.xlong)(%s)", arg.Name),
+		VarName: fmt.Sprintf("(*C.xulong)(%s)", arg.Name),
 	}
 }
 
@@ -217,11 +220,9 @@ for i, %[1]sV := range %[1]s {
 }`, arg.Name, cArrayType),
 			VarName: fmt.Sprintf("(*%s)(&%sArg[0])", cArrayType, arg.Name),
 			Finalizer: fmt.Sprintf(`
-func() {
-  for i, %[1]sV := range %[1]sArg {
-    (*%[1]s)[i] = %[3]s(%[1]sV)
-  }
-}()
+for i, %[1]sV := range %[1]sArg {
+	(*%[1]s)[i] = %[3]s(%[1]sV)
+}
 
 `, arg.Name, cArrayType, goArrayType),
 		}
@@ -238,11 +239,10 @@ for i, %[1]sV := range *%[1]s {
   %[1]sArg[i] = %[2]s(%[1]sV)
 }
 `, arg.Name, cArrayType, goArrayType),
-			Finalizer: fmt.Sprintf(`func() {
+			Finalizer: fmt.Sprintf(`
   for i, %[1]sV := range %[1]sArg {
     (*%[1]s)[i] = %[3]s(%[1]sV)
   }
-}()
 `, arg.Name, cArrayType, goArrayType),
 			VarName: fmt.Sprintf("(*%s)(&%sArg[0])", cArrayType, arg.Name),
 		}
@@ -283,11 +283,10 @@ for i, %[1]sV := range %[1]s {
   	%[1]sArg[i] = *tmp
 }
 `, arg.Name, cArrayType, goArrayType),
-			Finalizer: fmt.Sprintf(`func() {
+			Finalizer: fmt.Sprintf(`
   for _, %[1]sV := range %[1]sFin {
     %[1]sV()
   }
-}()
 `, arg.Name, cArrayType, goArrayType),
 			VarName: fmt.Sprintf("(*%s)(&%sArg[0])", cArrayType, arg.Name),
 		}

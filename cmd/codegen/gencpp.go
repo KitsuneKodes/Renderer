@@ -53,6 +53,7 @@ extern "C" {
 			strings.Contains(f.FuncName, "TextRange") ||
 			strings.Contains(f.FuncName, "ImVector") ||
 			strings.Contains(f.FuncName, "Allocator") ||
+			strings.Contains(f.FuncName, "MakeTime") ||
 			strings.Contains(f.FuncName, "__") {
 			shouldSkip = true
 			continue
@@ -77,7 +78,7 @@ extern "C" {
 			}
 		}
 
-		if len(f.FuncName) == 0 || strings.Contains(f.Location, "internal") {
+		if len(f.FuncName) == 0 || strings.Contains(f.Location, "imgui_internal") {
 			shouldSkip = true
 		}
 
